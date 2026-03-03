@@ -26,44 +26,22 @@ struct TransformerProfile {
 
 struct HardwareUnitProfile {
     TransformerProfile inputTransformer;
-    TransformerProfile outputTransformer;
 };
 
 class WaveshaperCurvesCore {
 public:
-    enum CurveType {
-        Opto_Tube,
-        FET,
-        Classic_VCA,
-        Console_Bus,
-        Transformer,
-        Linear
-    };
-
     static const int TABLE_SIZE = 4096;
     static const float TABLE_RANGE;
 
     WaveshaperCurvesCore();
-    float process(float input, CurveType curve) const;
+    float processTransformer(float input) const;
 
 private:
-    float optoCurve[TABLE_SIZE];
-    float fetCurve[TABLE_SIZE];
-    float vcaCurve[TABLE_SIZE];
-    float consoleCurve[TABLE_SIZE];
     float transformerCurve[TABLE_SIZE];
-    float linearCurve[TABLE_SIZE];
 
     static float clampFloat(float value, float lo, float hi);
     static float indexToInput(int index);
-    const float* getTable(CurveType curve) const;
-    void initialize();
-    void initializeOptoCurve();
-    void initializeFETCurve();
-    void initializeVCACurve();
-    void initializeConsoleCurve();
     void initializeTransformerCurve();
-    void initializeLinearCurve();
 };
 
 class TransformerEmulationCore {
@@ -78,7 +56,6 @@ public:
 private:
     TransformerProfile profile;
     double sampleRate;
-    int numChannels;
     bool enabled;
 
     float dcBlockerCoeff;
@@ -103,40 +80,6 @@ private:
     float addHarmonics(float input, const HarmonicProfile& harmonics);
     float applyHFRolloff(float input, int channel);
     float processDCBlocker(float input, int channel);
-};
-
-class ShortConvolutionCore {
-public:
-    enum TransformerType {
-        Opto,
-        FET_Type,
-        Console_Bus_Type,
-        Generic,
-        Bypass
-    };
-
-    static const int MAX_IR_LENGTH = 256;
-
-    ShortConvolutionCore();
-    void prepare(double sampleRate);
-    void reset();
-    void loadTransformerIR(TransformerType type);
-    float processSample(float input);
-
-private:
-    float impulseResponse[MAX_IR_LENGTH];
-    float reversedIR[MAX_IR_LENGTH];
-    float inputBuffer[MAX_IR_LENGTH];
-    int irLength;
-    int writePos;
-    double sampleRate;
-
-    static int minInt(int a, int b);
-    static float absFloat(float x);
-    void normalizeIR();
-    void generateTransformerIR(float resonanceFreq, float resonanceAmount, float rolloffFreq, float rolloffDb, int length);
-    void applyResonance(float freq, float amount);
-    void applyLowpass(float freq, float db);
 };
 
 class BusCompressorCore {
@@ -170,8 +113,6 @@ private:
     Detector detectors[MAX_CHANNELS];
 
     TransformerEmulationCore inputTransformer;
-    TransformerEmulationCore outputTransformer;
-    ShortConvolutionCore convolution;
 
     static float clampFloat(float value, float lo, float hi);
     static int clampInt(int value, int lo, int hi);
